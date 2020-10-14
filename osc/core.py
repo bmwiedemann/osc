@@ -3952,6 +3952,8 @@ def show_project_sourceinfo(apiurl, project, nofilename, *packages):
 
 def get_project_sourceinfo(apiurl, project, nofilename, *packages):
     try:
+        if len(packages) > 65000/12: # 12 = len('&package=xxx') and the current build.o.o max GET request size is 32k
+            raise HTTPError('http://', 414, 'URI too long', None, None)
         si = show_project_sourceinfo(apiurl, project, nofilename, *packages)
     except HTTPError as e:
         # old API servers (e.g. 2.3.5) do not know the 'nofilename' parameter, so retry without
