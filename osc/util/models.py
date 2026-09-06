@@ -49,7 +49,8 @@ else:
     from types import UnionType
 
 
-import urllib3.response
+if typing.TYPE_CHECKING:
+    import urllib3.response
 
 from . import xml
 
@@ -385,13 +386,16 @@ class ModelMeta(type):
                     continue
                 new_cls.__fields__[field_name] = field
 
+        # resolve type hints only once per class, the call is expensive
+        type_hints = get_type_hints(new_cls) if new_cls.__fields__ else {}
+
         # fill model specific details back to the fields
         for field_name, field in new_cls.__fields__.items():
             # property name associated with the field in this model
             field.name = field_name
 
             # field type associated with the field in this model
-            field.type = get_type_hints(new_cls)[field_name]
+            field.type = type_hints[field_name]
 
             # set annotation for the getter so it shows up in sphinx
             field.get_copy.__func__.__annotations__ = {"return": field.type}
@@ -868,7 +872,7 @@ class XmlModel(BaseModel):
         query: Optional[dict] = None,
         headers: Optional[str] = None,
         data: Optional[str] = None,
-    ) -> urllib3.response.HTTPResponse:
+    ) -> "urllib3.response.HTTPResponse":
         from ..connection import http_request
         from ..core import makeurl
         url = makeurl(apiurl, path, query)
