@@ -2,7 +2,7 @@ import os
 import re
 import subprocess
 import sys
-import urllib
+import urllib.parse
 from typing import Dict
 from typing import Iterator
 from typing import List
