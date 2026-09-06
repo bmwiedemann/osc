@@ -72,15 +72,6 @@ from .util.helper import raw_input
 from .util.models import *
 
 
-GENERIC_KEYRING = False
-
-try:
-    import keyring  # pylint: disable=import-error
-    GENERIC_KEYRING = True
-except:
-    pass
-
-
 __all__ = [
     "get_config",
     "Options",
@@ -1851,7 +1842,7 @@ def _get_credentials_manager(url, cp):
             conffile = get_configParser.conffile
             raise oscerr.ConfigMissingCredentialsError(msg, conffile, url)
         return creds_mgr
-    if config['use_keyring'] and GENERIC_KEYRING:
+    if config['use_keyring'] and credentials.has_keyring_support():
         return credentials.get_keyring_credentials_manager(cp)
     elif cp.get(url, "passx", fallback=None) is not None:
         return credentials.ObfuscatedConfigFileCredentialsManager(cp, None)

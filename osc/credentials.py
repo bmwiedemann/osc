@@ -5,15 +5,28 @@ import importlib
 import sys
 from urllib.parse import urlsplit
 
-try:
-    import keyring
-except ImportError:
-    keyring = None
-except BaseException as e:
-    # catch and report any exceptions raised in the 'keyring' module
-    msg = "Warning: Unable to load the 'keyring' module due to an internal error:"
-    print(msg, e, file=sys.stderr)
-    keyring = None
+# the 'keyring' module is imported lazily on first use because importing it is expensive
+keyring = None
+_keyring_imported = False
+
+
+def _import_keyring():
+    global keyring
+    global _keyring_imported
+
+    if _keyring_imported:
+        return
+    _keyring_imported = True
+
+    try:
+        import keyring as keyring_module  # pylint: disable=import-outside-toplevel
+        keyring = keyring_module
+    except ImportError:
+        pass
+    except BaseException as e:
+        # catch and report any exceptions raised in the 'keyring' module
+        msg = "Warning: Unable to load the 'keyring' module due to an internal error:"
+        print(msg, e, file=sys.stderr)
 
 from . import conf
 from . import oscerr
@@ -199,6 +212,9 @@ class KeyringCredentialsManager(AbstractCredentialsManager):
         self._backend_cls_name = options
 
     def _load_backend(self):
+        if not has_keyring_support():
+            msg = f"Unable to load credentials_mgr_class '{self._backend_cls_name}': the 'keyring' module is not available"
+            raise oscerr.ConfigError(msg, conf.config['conffile'])
         try:
             keyring_backend = keyring.core.load_keyring(self._backend_cls_name)
         except ModuleNotFoundError:
@@ -309,6 +325,7 @@ def get_credentials_manager_descriptors():
 
 
 def get_keyring_credentials_manager(cp):
+    _import_keyring()
     keyring_backend = keyring.get_keyring()
     return KeyringCredentialsManager(cp, qualified_name(keyring_backend))
 
@@ -334,4 +351,5 @@ def qualified_name(obj):
 
 
 def has_keyring_support():
+    _import_keyring()
     return keyring is not None
