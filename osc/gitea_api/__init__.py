@@ -1,28 +1,59 @@
-from .connection import Connection
-from .common import dt_sanitize
-from .common import edit_message
-from .exceptions import BranchDoesNotExist
-from .exceptions import BranchExists
-from .exceptions import ForkExists
-from .exceptions import GiteaException
-from .exceptions import GitObsRuntimeError
-from .exceptions import RepoExists
-from .exceptions import UserDoesNotExist
-from .exceptions import response_to_exception
-from .branch import Branch
-from .conf import Config
-from .conf import Login
-from .fork import Fork
-from .git import Git
-from .git_diff_generator import GitDiffGenerator
-from .issue import Issue
-from .issue_timeline_entry import IssueTimelineEntry
-from .json import json_dumps
-from .maintainership import Maintainership
-from .pr import PullRequest
-from .pr_review import PullRequestReview
-from .repo import Repo
-from .ssh_key import SSHKey
-from .staging import StagingPullRequestWrapper
-from .tardiff import TarDiff
-from .user import User
+"""
+Gitea API client.
+
+The public names are imported from the submodules lazily on first access
+to keep the startup of osc and git-obs fast.
+"""
+
+
+# name -> submodule that defines it
+_LAZY_ATTRS = {
+    "Connection": "connection",
+    "dt_sanitize": "common",
+    "edit_message": "common",
+    "BranchDoesNotExist": "exceptions",
+    "BranchExists": "exceptions",
+    "ForkExists": "exceptions",
+    "GiteaException": "exceptions",
+    "GitObsRuntimeError": "exceptions",
+    "RepoExists": "exceptions",
+    "UserDoesNotExist": "exceptions",
+    "response_to_exception": "exceptions",
+    "Branch": "branch",
+    "Config": "conf",
+    "Login": "conf",
+    "Fork": "fork",
+    "Git": "git",
+    "GitDiffGenerator": "git_diff_generator",
+    "Issue": "issue",
+    "IssueTimelineEntry": "issue_timeline_entry",
+    "json_dumps": "json",
+    "Maintainership": "maintainership",
+    "PullRequest": "pr",
+    "PullRequestReview": "pr_review",
+    "Repo": "repo",
+    "SSHKey": "ssh_key",
+    "StagingPullRequestWrapper": "staging",
+    "TarDiff": "tardiff",
+    "User": "user",
+}
+
+__all__ = tuple(_LAZY_ATTRS)
+
+
+def __getattr__(name):
+    try:
+        module_name = _LAZY_ATTRS[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+
+    import importlib  # pylint: disable=import-outside-toplevel
+
+    value = getattr(importlib.import_module(f".{module_name}", __name__), name)
+    # cache the value so the lookup doesn't go through __getattr__ again
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_LAZY_ATTRS))

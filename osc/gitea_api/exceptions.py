@@ -2,13 +2,17 @@ import inspect
 import json
 import re
 from typing import Optional
+from typing import TYPE_CHECKING
 
 from .. import oscerr
-from .connection import GiteaHTTPResponse
+
+
+if TYPE_CHECKING:
+    from .connection import GiteaHTTPResponse
 
 
 def response_to_exception(
-    response: GiteaHTTPResponse,
+    response: "GiteaHTTPResponse",
     *,
     context: Optional[dict] = None,
     exception_map: Optional[dict] = None,
@@ -59,7 +63,7 @@ class GiteaException(oscerr.OscBaseError):
     RESPONSE_STATUS: Optional[int] = None
     RESPONSE_MESSAGE_RE: list
 
-    def __init__(self, response: GiteaHTTPResponse):
+    def __init__(self, response: "GiteaHTTPResponse"):
         self.response = response
 
     @property
@@ -87,7 +91,7 @@ class MovedPermanently(GiteaException):
         re.compile(r"(?P<message>.*)"),
     ]
 
-    def __init__(self, response: GiteaHTTPResponse, message: str, **_kwargs):
+    def __init__(self, response: "GiteaHTTPResponse", message: str, **_kwargs):
         super().__init__(response)
         self.message = message
 
@@ -107,7 +111,7 @@ class BranchDoesNotExist(GiteaException):
         re.compile(r"branch does not exist \[name: (?P<branch>.+)\]"),
     ]
 
-    def __init__(self, response: GiteaHTTPResponse, owner: str, repo: str, branch: str):
+    def __init__(self, response: "GiteaHTTPResponse", owner: str, repo: str, branch: str):
         super().__init__(response)
         self.owner = owner
         self.repo = repo
@@ -127,7 +131,7 @@ class BranchExists(GiteaException):
         re.compile(r"The branch already exists\."),
     ]
 
-    def __init__(self, response: GiteaHTTPResponse, owner: str, repo: str, branch: str):
+    def __init__(self, response: "GiteaHTTPResponse", owner: str, repo: str, branch: str):
         super().__init__(response)
         self.owner = owner
         self.repo = repo
@@ -145,7 +149,7 @@ class ForkExists(GiteaException):
         re.compile(r"repository is already forked by user \[uname: .+, repo path: (?P<owner>.+)/(?P<repo>.+), fork path: (?P<fork_owner>.+)/(?P<fork_repo>.+)\]"),
     ]
 
-    def __init__(self, response: GiteaHTTPResponse, owner: str, repo: str, fork_owner: str, fork_repo: str):
+    def __init__(self, response: "GiteaHTTPResponse", owner: str, repo: str, fork_owner: str, fork_repo: str):
         super().__init__(response)
         self.owner = owner
         self.repo = repo
@@ -164,7 +168,7 @@ class RepoExists(GiteaException):
         re.compile(r"^repository already exists \[uname: (?P<owner>.+), name: (?P<repo>.+)\]"),
     ]
 
-    def __init__(self, response: GiteaHTTPResponse, owner: str, repo: str):
+    def __init__(self, response: "GiteaHTTPResponse", owner: str, repo: str):
         super().__init__(response)
         self.owner = owner
         self.repo = repo
@@ -190,7 +194,7 @@ class AutoMergeAlreadyScheduled(GiteaException):
         re.compile(r"^pull request is already scheduled to auto merge when checks succeed \[pull_id: (?P<number>.+)\]"),
     ]
 
-    def __init__(self, response: GiteaHTTPResponse, owner: str, repo: str, number: int):
+    def __init__(self, response: "GiteaHTTPResponse", owner: str, repo: str, number: int):
         super().__init__(response)
         self.owner = owner
         self.repo = repo
@@ -208,7 +212,7 @@ class UserDoesNotExist(GiteaException):
         re.compile(r"^user redirect does not exist \[name: (?P<username>.*)\]"),
     ]
 
-    def __init__(self, response: GiteaHTTPResponse, username: str):
+    def __init__(self, response: "GiteaHTTPResponse", username: str):
         super().__init__(response)
         self.username = username
 
@@ -224,7 +228,7 @@ class PullRequestReviewDoesNotExist(GiteaException):
         re.compile(r"review does not exist \[id: (?P<review_id>.+)\]"),
     ]
 
-    def __init__(self, response: GiteaHTTPResponse, owner: str, repo: str, number: str, review_id: str):
+    def __init__(self, response: "GiteaHTTPResponse", owner: str, repo: str, number: str, review_id: str):
         super().__init__(response)
         self.owner = owner
         self.repo = repo
@@ -237,7 +241,7 @@ class PullRequestReviewDoesNotExist(GiteaException):
 
 
 class PullRequestDoesNotExist(GiteaException):
-    def __init__(self, response: GiteaHTTPResponse, owner: str, repo: str, number: str):
+    def __init__(self, response: "GiteaHTTPResponse", owner: str, repo: str, number: str):
         super().__init__(response)
         self.owner = owner
         self.repo = repo
