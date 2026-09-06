@@ -7,9 +7,6 @@ import sys
 import tempfile
 import typing
 
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
 from urllib3.util.ssl_ import create_urllib3_context
 
 from .oscerr import CertVerificationError
@@ -43,6 +40,7 @@ def create_ssl_context():
 
 class TrustedCertStore:
     def __init__(self, ssl_context, host, port):
+        from cryptography import x509
         self.ssl_context = ssl_context
         self.host = host
         self.port = port or 443
@@ -68,6 +66,7 @@ class TrustedCertStore:
             self.cert = None
 
     def get_server_certificate(self):
+        from cryptography import x509
         # The following code throws an exception on self-signed certs,
         # therefore we need to retrieve the cert differently.
         # pem = ssl.get_server_certificate((self.host, self.port))
@@ -87,6 +86,7 @@ class TrustedCertStore:
         Permanently trust the certificate.
         Store it as a pem file in ~/.config/osc/trusted-certs.
         """
+        from cryptography.hazmat.primitives import serialization
         self.cert = cert
         data = self.cert.public_bytes(serialization.Encoding.PEM)
         with open(self.pem_path, "wb") as f:
@@ -97,6 +97,7 @@ class TrustedCertStore:
         """
         Temporarily trust the certificate.
         """
+        from cryptography.hazmat.primitives import serialization
         self.cert = cert
         tmp_dir = os.path.expanduser(os.path.join(xdg.XDG_CONFIG_HOME, "osc"))
         data = self.cert.public_bytes(serialization.Encoding.PEM)
@@ -107,6 +108,8 @@ class TrustedCertStore:
 
     @staticmethod
     def _display_cert(cert):
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes
         print("Subject:", cert.subject.rfc4514_string())
         print("Issuer:", cert.issuer.rfc4514_string())
         try:
@@ -122,6 +125,7 @@ class TrustedCertStore:
         print("Fingerprint(SHA1):", binascii.hexlify(cert.fingerprint(hashes.SHA1())).decode("utf-8"))
 
     def prompt_trust(self, cert, reason):
+        from cryptography.hazmat.primitives import serialization
         if self.cert:
             # check if the certificate matches the already trusted certificate for the host and port
             if cert != self.cert:
