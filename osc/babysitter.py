@@ -7,17 +7,12 @@
 import errno
 import os
 import signal
-import ssl
 import sys
 import traceback
 
 from . import commandline
 from . import oscerr
 from . import output
-from .OscConfigParser import configparser
-from .util.cpio import CpioError
-from .util.helper import decode_it
-from .util.packagequery import PackageError
 
 
 try:
@@ -77,9 +72,14 @@ def run(prg, argv=None):
         raise
     except:
         # import modules and handle the re-raised exception
+        import ssl
         from http.client import HTTPException, BadStatusLine
         from urllib.error import URLError, HTTPError
         import urllib3.exceptions
+        from .OscConfigParser import configparser
+        from .util.cpio import CpioError
+        from .util.helper import decode_it
+        from .util.packagequery import PackageError
 
         try:
             # import as RPMError because the class "error" is too generic
