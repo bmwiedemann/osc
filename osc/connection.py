@@ -22,7 +22,6 @@ import urllib3.poolmanager
 import urllib3.response
 import urllib3.util
 
-from . import __version__
 from . import conf
 from . import oscerr
 from . import oscssl
@@ -124,6 +123,8 @@ def get_proxy_manager(env):
     else:
         proxy_url = f"{proxy_purl.scheme}://{proxy_purl.host}"
 
+    from . import __version__
+
     proxy_headers = urllib3.make_headers(
         user_agent=f"osc/{__version__}",
     )
@@ -201,6 +202,7 @@ def http_request(method: str, url: str, headers=None, data=None, file=None):
     headers = urllib3.response.HTTPHeaderDict(headers or {})
 
     # identify osc
+    from . import __version__
     headers.update(urllib3.make_headers(user_agent=f"osc/{__version__}"))
 
     if data and file:

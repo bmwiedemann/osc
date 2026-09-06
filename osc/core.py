@@ -43,7 +43,6 @@ try:
 except ImportError:
     distro = None
 
-from . import __version__
 from . import _private
 from . import conf
 from . import meter
@@ -5093,6 +5092,7 @@ def rebuild(apiurl: str, prj: str, package: str, repo: str, arch: str, code=None
 
 
 def get_osc_version():
+    from . import __version__
     return __version__
 
 
