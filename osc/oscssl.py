@@ -40,7 +40,6 @@ def create_ssl_context():
 
 class TrustedCertStore:
     def __init__(self, ssl_context, host, port):
-        from cryptography import x509
         self.ssl_context = ssl_context
         self.host = host
         self.port = port or 443
@@ -58,6 +57,8 @@ class TrustedCertStore:
         file_name = f"{self.host}_{self.port}"
         self.pem_path = os.path.join(self.dir_path, f"{file_name}.pem")
         if os.path.isfile(self.pem_path):
+            from cryptography import x509
+
             # load permanently trusted certificate that is stored on disk
             with open(self.pem_path, "rb") as f:
                 self.cert = x509.load_pem_x509_certificate(f.read())
