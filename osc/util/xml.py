@@ -3,7 +3,6 @@ Functions that manipulate with XML.
 """
 
 import io
-import xml.sax.saxutils
 from typing import Union
 from xml.etree import ElementTree as ET
 
@@ -12,26 +11,30 @@ def xml_escape(string):
     """
     Escape the string so it's safe to use in XML and xpath.
     """
+    from xml.sax import saxutils
+
     entities = {
         '"': "&quot;",
         "'": "&apos;",
     }
     if isinstance(string, bytes):
-        return xml.sax.saxutils.escape(string.decode("utf-8"), entities=entities).encode("utf-8")
-    return xml.sax.saxutils.escape(string, entities=entities)
+        return saxutils.escape(string.decode("utf-8"), entities=entities).encode("utf-8")
+    return saxutils.escape(string, entities=entities)
 
 
 def xml_unescape(string):
     """
     Decode XML entities in the string.
     """
+    from xml.sax import saxutils
+
     entities = {
         "&quot;": '"',
         "&apos;": "'",
     }
     if isinstance(string, bytes):
-        return xml.sax.saxutils.unescape(string.decode("utf-8"), entities=entities).encode("utf-8")
-    return xml.sax.saxutils.unescape(string, entities=entities)
+        return saxutils.unescape(string.decode("utf-8"), entities=entities).encode("utf-8")
+    return saxutils.unescape(string, entities=entities)
 
 
 def xml_strip_text(node):
