@@ -2149,8 +2149,9 @@ def get_config(override_conffile=None,
         raise e
 
     # enable connection debugging after all config options are set
-    from .connection import enable_http_debug
-    enable_http_debug(config)
+    if config["http_debug"] or config["http_full_debug"]:
+        from .connection import enable_http_debug
+        enable_http_debug(config)
 
 
 def identify_conf():
