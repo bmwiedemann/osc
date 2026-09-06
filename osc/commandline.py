@@ -233,7 +233,51 @@ class OscMainCommand(MainCommand):
 
         return LegacyCommandWrapper
 
-    def load_legacy_commands(self):
+    def _peek_command_name(self, argv=None):
+        """
+        Return the name of the sub-command found in ``argv`` without running argparse.
+        Return ``None`` if all commands must be registered, for example when help is requested.
+        """
+        if "_ARGCOMPLETE" in os.environ:
+            # argcomplete needs all commands to provide completions
+            return None
+
+        if argv is None:
+            argv = sys.argv[1:]
+
+        # global options that take a value; the value is the next arg unless it is specified with '='
+        value_options = []
+        for action in self.parser._actions:
+            if action.option_strings and action.nargs != 0:
+                value_options.extend(action.option_strings)
+        long_value_options = [i for i in value_options if i.startswith("--")]
+
+        skip_next = False
+        for arg in argv:
+            if skip_next:
+                skip_next = False
+                continue
+            if arg in ("-h", "--help", "--"):
+                return None
+            if arg.startswith("--"):
+                # argparse allows abbreviations of long options
+                if "=" not in arg and any(i.startswith(arg) for i in long_value_options):
+                    skip_next = True
+                continue
+            if arg.startswith("-"):
+                if arg in value_options:
+                    skip_next = True
+                continue
+            # the first positional argument is the command
+            return arg
+        return None
+
+    def load_legacy_commands(self, command_name=None):
+        """
+        Register the legacy ``do_*`` commands from the ``Osc`` class.
+        If ``command_name`` is set and it matches a legacy command name or alias,
+        register only that command to speed the startup up.
+        """
         # lazy links of attributes that would normally be initialized in the instance of Osc class
         class LegacyOsc(Osc):  # pylint: disable=used-before-assignment
             # pylint: disable=no-self-argument
@@ -268,6 +312,11 @@ class OscMainCommand(MainCommand):
 
         osc_instance = LegacyOsc()
 
+        if command_name in ("help", "?"):
+            # 'help' walks through all the registered commands
+            command_name = None
+
+        funcs = []
         for name in dir(osc_instance):
             if not name.startswith("do_"):
                 continue
@@ -277,6 +326,24 @@ class OscMainCommand(MainCommand):
             if not inspect.ismethod(func) and not inspect.isfunction(func):
                 continue
 
+            funcs.append(func)
+
+        if command_name is not None:
+            funcs_by_name = {}
+            for func in funcs:
+                funcs_by_name[getattr(func, "name", func.__name__[3:])] = func
+                for alias in getattr(func, "aliases", []):
+                    funcs_by_name.setdefault(alias, func)
+
+            subparsers = getattr(self, "subparsers", None)
+            if command_name in funcs_by_name:
+                funcs = [funcs_by_name[command_name]]
+            elif subparsers is not None and command_name in subparsers._name_parser_map:
+                # the command is not a legacy command, it has been registered already
+                funcs = []
+            # else: unknown command -> register everything so argparse reports the usual error
+
+        for func in funcs:
             cls = self._wrap_legacy_command(func)
             self.load_command(cls, "osc.commands.old")
 
@@ -290,7 +357,9 @@ class OscMainCommand(MainCommand):
         # we normally use both in the --help output, but want to change that for argparse-manpage
         cmd.argparse_manpage = argparse_manpage
         cmd.load_commands()
-        cmd.load_legacy_commands()
+        # register only the legacy command that is going to run to speed the startup up
+        command_name = cmd._peek_command_name(argv) if run else None
+        cmd.load_legacy_commands(command_name)
         if run:
             args = cmd.parse_args(args=argv)
             exit_code = cmd.run(args)
