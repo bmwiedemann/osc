@@ -1,6 +1,7 @@
 import os
 import unittest
 
+import osc.commandline
 import osc.core
 import osc.oscerr
 
@@ -61,6 +62,24 @@ class TestSetLinkRev(OscTestCase):
     def test_expandexistingrev(self):
         """link already has a rev attribute, update it to current version"""
         osc.core.set_link_rev('http://localhost', 'osctest', 'simple', expand=True)
+
+    @GET('http://localhost/source/osctest', file='project_packagelist')
+    @GET('http://localhost/source/osctest/simple/_link', file='simple_link')
+    @GET('http://localhost/source/srcprj/srcpkg?rev=latest&expand=1', file='simple_filesremote')
+    @PUT('http://localhost/source/osctest/simple/_link?comment=Set+link+revision+to+42',
+         exp='<link package="srcpkg" project="srcprj" rev="42" />', text='dummytext')
+    @GET('http://localhost/source/osctest/simple2/_link', file='simple2_link')
+    @GET('http://localhost/source/srcprj/srcpkg2?rev=latest&expand=1', file='simple2_filesremote')
+    @PUT('http://localhost/source/osctest/simple2/_link?comment=Set+link+revision+to+7',
+         exp='<link package="srcpkg2" project="srcprj" rev="7" />', text='dummytext')
+    def test_project(self):
+        """each package of a project gets the latest revision of its own link target"""
+        out = self._run_osc("setlinkrev", "osctest")
+        self.assertEqual(
+            out,
+            "Set link revision of package osctest/simple to 42\n"
+            "Set link revision of package osctest/simple2 to 7\n",
+        )
 
     @GET('http://localhost/source/osctest/simple/_link', file='simple_link')
     @GET('http://localhost/source/srcprj/srcpkg?rev=latest&expand=1', text='conflict in file merge', code=400)

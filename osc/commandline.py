@@ -3653,17 +3653,18 @@ Please submit there instead, or use --nodevelproject to force direct submission.
 
         for p in packages:
             try:
-                rev = set_link_rev(apiurl, project, p, revision=rev, expand=not opts.use_plain_revision, vrev=opts.vrev)
+                new_rev = set_link_rev(apiurl, project, p, revision=rev, expand=not opts.use_plain_revision,
+                                       vrev=opts.vrev)
             except HTTPError as e:
                 if e.code != 404:
                     raise
                 print(f"WARNING: Package {project}/{p} has no link", file=sys.stderr)
                 continue
 
-            if rev is None:
+            if new_rev is None:
                 print(f"Removed link revision from package {project}/{p}")
             else:
-                print(f"Set link revision of package {project}/{p} to {rev}")
+                print(f"Set link revision of package {project}/{p} to {new_rev}")
 
     def do_linktobranch(self, subcmd, opts, *args):
         """
