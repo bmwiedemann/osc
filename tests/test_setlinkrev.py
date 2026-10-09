@@ -82,6 +82,69 @@ class TestSetLinkRev(OscTestCase):
         )
 
     @GET('http://localhost/source/osctest/simple/_link', file='simple_link')
+    @GET('http://localhost/source/srcprj/srcpkg?rev=latest', file='simple_filesremote')
+    @PUT('http://localhost/source/osctest/simple/_link?comment=Set+link+revision+to+ffffffffffffffffffffffffffffffff',
+         exp='<link package="srcpkg" project="srcprj" rev="ffffffffffffffffffffffffffffffff" vrev="1" />',
+         text='dummytext')
+    def test_md5(self):
+        """md5=True never writes a numeric revision"""
+        osc.core.set_link_rev('http://localhost', 'osctest', 'simple', md5=True)
+
+    @GET('http://localhost/source/osctest/simple/_link', file='simple_link')
+    @GET('http://localhost/source/srcprj/srcpkg?rev=latest&expand=1', file='simple_filesremote')
+    @PUT('http://localhost/source/osctest/simple/_link?comment=Set+link+revision+to+ffffffffffffffffffffffffffffffff',
+         exp='<link package="srcpkg" project="srcprj" rev="ffffffffffffffffffffffffffffffff" vrev="1" />',
+         text='dummytext')
+    def test_md5_expand(self):
+        """md5=True uses the srcmd5 if the expanded source is not a link"""
+        osc.core.set_link_rev('http://localhost', 'osctest', 'simple', expand=True, md5=True)
+
+    @GET('http://localhost/source/osctest/simple/_link', file='simple_link')
+    @GET('http://localhost/source/srcprj/srcpkg?rev=42', file='simple_filesremote')
+    @PUT('http://localhost/source/osctest/simple/_link?comment=Set+link+revision+to+ffffffffffffffffffffffffffffffff',
+         exp='<link package="srcpkg" project="srcprj" rev="ffffffffffffffffffffffffffffffff" vrev="1" />',
+         text='dummytext')
+    def test_md5_numeric_revision(self):
+        """md5=True converts a given numeric revision to its srcmd5"""
+        osc.core.set_link_rev('http://localhost', 'osctest', 'simple', '42', md5=True)
+
+    @GET('http://localhost/source/osctest/simple/_link', file='noproject_link')
+    @GET('http://localhost/source/osctest/srcpkg?rev=latest&expand=1', file='expandedsrc_filesremote')
+    @PUT('http://localhost/source/osctest/simple/_link?comment=Set+link+revision+to+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+         exp='<link package="srcpkg" rev="eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" vrev="1" />', text='dummytext')
+    def test_md5_expandedsrc(self):
+        """md5=True gives the same result as the default for an expanded link source"""
+        osc.core.set_link_rev('http://localhost', 'osctest', 'simple', expand=True, md5=True)
+
+    @GET('http://localhost/source/osctest/simple/_link', file='simple_link')
+    @PUT('http://localhost/source/osctest/simple/_link?comment=Set+link+revision+to+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+         exp='<link package="srcpkg" project="srcprj" rev="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" />', text='dummytext')
+    def test_md5_given_md5_revision(self):
+        """md5=True keeps a given md5 revision without resolving it"""
+        osc.core.set_link_rev('http://localhost', 'osctest', 'simple', 'a' * 32, md5=True)
+
+    @GET('http://localhost/source/osctest/simple/_link', file='simple_link')
+    @GET('http://localhost/source/srcprj/srcpkg?rev=latest&expand=1', file='simple_filesremote')
+    @PUT('http://localhost/source/osctest/simple/_link?comment=Set+link+revision+to+ffffffffffffffffffffffffffffffff',
+         exp='<link package="srcpkg" project="srcprj" rev="ffffffffffffffffffffffffffffffff" vrev="1" />',
+         text='dummytext')
+    def test_md5_cli(self):
+        """osc setlinkrev --md5"""
+        out = self._run_osc("setlinkrev", "--md5", "osctest", "simple")
+        self.assertEqual(out, "Set link revision of package osctest/simple to ffffffffffffffffffffffffffffffff\n")
+
+    def test_md5_unset_cli(self):
+        """osc setlinkrev --md5 --unset is rejected without touching the link"""
+        out = self._run_osc("setlinkrev", "--md5", "--unset", "osctest", "simple")
+        self.assertEqual(out, "")
+
+    @GET('http://localhost/source/osctest/simple/_link', file='simple_link')
+    @GET('http://localhost/source/srcprj/srcpkg?rev=latest', text='<directory name="srcpkg" rev="42" />')
+    def test_md5_missing_srcmd5(self):
+        """md5=True fails if the server does not return a srcmd5"""
+        self.assertRaises(osc.oscerr.APIError, osc.core.set_link_rev, 'http://localhost', 'osctest', 'simple', md5=True)
+
+    @GET('http://localhost/source/osctest/simple/_link', file='simple_link')
     @GET('http://localhost/source/srcprj/srcpkg?rev=latest&expand=1', text='conflict in file merge', code=400)
     def test_linkerror(self):
         """link is broken"""

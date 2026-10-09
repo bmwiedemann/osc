@@ -3599,6 +3599,8 @@ Please submit there instead, or use --nodevelproject to force direct submission.
                   help='Do not expand revision the specified or latest rev')
     @cmdln.option('-u', '--unset', action='store_true',
                   help='remove revision in link, it will point always to latest revision')
+    @cmdln.option('--md5', action='store_true',
+                  help='always use an MD5-based revision (srcmd5) in the link, never a numeric one')
     @cmdln.option('--vrev', metavar='vrev',
                   help='Enforce a given vrev')
     def do_setlinkrev(self, subcmd, opts, *args):
@@ -3646,6 +3648,9 @@ Please submit there instead, or use --nodevelproject to force direct submission.
             # It is highly unlikely that all links for all packages in a project should be set to the same revision.
             self.argparse_error("The --revision option requires to specify a package")
 
+        if opts.md5 and opts.unset:
+            self.argparse_error("The --md5 and --unset options are mutually exclusive")
+
         if package:
             packages = [package]
         else:
@@ -3654,7 +3659,7 @@ Please submit there instead, or use --nodevelproject to force direct submission.
         for p in packages:
             try:
                 new_rev = set_link_rev(apiurl, project, p, revision=rev, expand=not opts.use_plain_revision,
-                                       vrev=opts.vrev)
+                                       vrev=opts.vrev, md5=opts.md5)
             except HTTPError as e:
                 if e.code != 404:
                     raise

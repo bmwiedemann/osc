@@ -5363,6 +5363,7 @@ def set_link_rev(
     expand=False,
     msg: Optional[str] = None,
     vrev: Optional[str] = None,
+    md5=False,
 ):
     url = makeurl(apiurl, ["source", project, package, "_link"])
     try:
@@ -5371,7 +5372,7 @@ def set_link_rev(
     except HTTPError as e:
         e.osc_msg = f'Unable to get _link file in package \'{package}\' for project \'{project}\''
         raise
-    revision = _set_link_rev(apiurl, project, package, root, revision, expand=expand, setvrev=vrev)
+    revision = _set_link_rev(apiurl, project, package, root, revision, expand=expand, setvrev=vrev, md5=md5)
     l = ET.tostring(root, encoding=ET_ENCODING)
 
     if not msg:
@@ -5385,7 +5386,7 @@ def set_link_rev(
 
 
 def _set_link_rev(
-    apiurl: str, project: str, package: str, root, revision="", expand=False, setvrev: Optional[str] = None
+    apiurl: str, project: str, package: str, root, revision="", expand=False, setvrev: Optional[str] = None, md5=False
 ):
     """
     Updates the rev attribute of the _link xml. If revision is set to None
@@ -5395,6 +5396,9 @@ def _set_link_rev(
     xsrcmd5 if expand is True). If revision is neither None nor the empty
     string the _link's rev attribute is set to this revision (or to the
     xsrcmd5 if expand is True).
+    If md5 is True, a numeric revision is never written to the _link;
+    the srcmd5 of the source package revision (expanded if expand is True)
+    is used instead.
     """
     src_project = root.get('project', project)
     src_package = root.get('package', package)
@@ -5404,6 +5408,15 @@ def _set_link_rev(
             del root.attrib['rev']
         if 'vrev' in root.keys():
             del root.attrib['vrev']
+    elif md5 and (not revision or expand or not re.fullmatch(r"[0-9a-f]{32}", revision)):
+        # numeric revisions are not stable, they can point to different sources
+        # e.g. after the source package got deleted and re-created
+        m = show_files_meta(apiurl, src_project, src_package, revision=revision, expand=expand)
+        et = xml_fromstring(m)
+        revision = et.get("srcmd5")
+        vrev = et.get("vrev") or None
+        if not revision:
+            raise oscerr.APIError(f"Unable to get srcmd5 of package '{src_project}/{src_package}'")
     elif not revision or expand:
         revision, vrev = show_upstream_rev_vrev(apiurl, src_project, src_package, revision=revision, expand=expand)
 
